@@ -1,0 +1,388 @@
+<style>
+.small-code pre code {
+  font-size: 1em;
+}
+</style>
+
+Cleaning Data with R
+========================================================
+author: Ben Bellman
+date: August 30, 2017
+autosize: true
+incremental: false
+
+Plan for Workshop
+========================================================
+
+- **Tues. Morning:** 
+    - Introduction to R, Data Manipulation (```tidyverse``` and ```dplyr```)
+- **Tues. Afternoon:** 
+    - Data Visualization (```ggplot2```), Practice
+- **Wed. Morning:** 
+    - Cleaning Data, Advanced Topics
+- **Wed. Afternoon:** 
+    - Practice
+
+Refresh from Yesterday
+========================================================
+- Introduction to R
+    - Anatomy of a command
+    - Data types and functions
+- Using ```dplyr```
+    - ```tidyverse``` packages
+    - ```select()```, ```filter()```, ```arrange()```, ```summarise()```, and ```mutate()```
+    - The piping operator, ```%>%```
+- Using ```ggplot2```
+    - Initialize with ```ggplot()``` or ```ggmap()```
+    - Customize with additional functions
+    
+Anatomy of a command
+========================================================
+
+```obj <- funct(arg1, arg2 = True, arg3 = "setting", ...)```
+
+- ```obj``` = object where output of ```function``` is stored
+    - ```<-``` is the assignment operator for storing results
+- ```funct``` = name of function being called
+- ```arg1``` = first argument is usually object/data being operated on
+- ```arg2, arg3``` = additional arguments that change how ```funct``` works
+    - Can refer to true/false value, different methods, etc.
+    - Have default values, so not always necessary to use them
+
+Objects and Data
+========================================================
+
+- There are a few basic types of objects/data
+    - Single values
+    - Vectors (integer/numeric, character, factor)
+    - Matrices
+    - Data frames
+    - Lists
+    
+- Other types of data are introduced through packages
+  - Built on these basic data structures
+
+Functions
+========================================================
+
+- When coding, think of objects as nouns and functions as verbs
+
+- R is a "functional language"
+    - Can be directy referenced as objects and inputs without storing in memory
+    - Packages are suites of functions
+    - Can write own functions (we'll discuss later!)
+
+- Must pay attention to required arguments of functions
+
+- Can always view CRAN documentation of function with ```?function```
+
+The tidyverse Suite
+========================================================
+
+- ```tibble``` : A "modern" version of a data frame
+
+- ```purrr``` : Tools for programming functions
+- ```readr``` : Tools for importing text data files
+- ```tidyr``` : Tools for cleaning and transforming data
+- ```dplyr``` : Tools for data manipulation and analysis
+- ```ggplot2``` : Tools for data visualization
+
+Tidy data
+========================================================
+
+- Tidy data is data where: 
+    1. Each variable is in a column.
+    2. Each observation is a row. 
+    3. Each value is a cell.
+    
+- Guiding philosophy for Wickham packages, implemented through ```tidyr``` package
+
+- See full paper in [Journal of Statistical Software](https://www.jstatsoft.org/article/view/v059i10)
+    - Shorter version is a ```tidyr``` vignette
+
+
+Using tidyr
+========================================================
+
+- Tools to bring any data into these standard definitions
+- When do I need to worry about this?
+    - "Raw" data sources: web scraping with ```rvest```, social media data, combining data from multiple tables, etc.
+    - Data presented as a table, with one variable covering many columns
+    - Transforming data across multiple levels of observation
+    
+tidyr functions
+========================================================
+
+- ```gather()``` and ```spread()``` are functions for reorganizing data by observations
+    - Same as reshaping data in STATA
+- ```separate()``` and ```extract()``` are similar functions with the purpose of taking information on two variables in one column, and creating two columns
+
+gather() function
+========================================================
+
+- Uses the concept of "key-value" pairs to separate variables
+
+- Take a simple example with two heartrate measurements taken for three people
+- Each measurement is associated with a drug, recorded in separate columns
+- The ```gather()``` function reassigns the variable names (drugs) to a column, and gathers the heartrate measure into one column
+
+gather() function
+========================================================
+class: small-code
+```{r}
+library(tidyverse)
+
+messy <- tibble(
+  name = c("Wilbur", "Petunia", "Gregory"),
+  a = c(67, 80, 64),
+  b = c(56, 90, 50)
+)
+
+messy
+```
+
+gather() function
+========================================================
+class: small-code
+```{r}
+tidy <- messy %>%
+  gather(drug, heartrate, a, b)
+
+tidy
+```
+
+spread() function
+========================================================
+
+- The ```spread()``` function does the opposite of ```gather()```
+    - When two columns are a key-value pair, you can make they key variable into its own columns
+    - Best example in population research is longitudinal data
+    - Do we want one row for each person with different columns for time points?
+    - Or do we want multiple rows for each person, with one column holding all measurements?
+    
+spread() function
+========================================================
+class: small-code
+```{r}
+tidy
+
+tidy %>%
+  spread(drug, heartrate)
+```
+
+separate() function
+========================================================
+
+- ```separate()``` is used to split one column into two columns
+    - Compare to "split" in STATA
+    - Use a regular expression to identify "where" to split the data
+- ```extract()``` essentially does the same thing, but uses regular expressions to extract data rather than simply split a string
+
+separate() function
+========================================================
+class: small-code
+```{r}
+old <- tibble(
+  day_of_week = c("Mon", "Tues", "Wed", "Thurs", "Fri"),
+  date = c("08-28-2017", "08-29-2017", "08-30-2017", 
+           "08-31-2017", "09-01-2017")
+)
+
+old
+```
+
+separate() function
+========================================================
+class: small-code
+```{r}
+old %>%
+  separate(date, into = c("day", "month", "year"), sep = "\\-")
+```
+
+
+stringr: Using Text Data
+========================================================
+
+- Very often, "data cleaning" means text cleaning
+    - Remove unwanted text, extract wanted text
+    - Recognize patterns, etc.
+- ```stringr``` package is best toolkit for these operations
+    - Lots of functions, can't learn them all
+    - Uses "regular expressions" for pattern recognition
+    - Beyond the scope of today, but relatively easy and worth learning
+- Let's explore the salaries data
+
+
+Basic stringr
+========================================================
+class: small-code
+```{r}
+install.packages("stringr", repos = 0)
+library(stringr)
+
+# load the salaries data
+salaries <- read_csv("~/Google Drive/Computer Backup/R Workshop/Data/white-house-salaries.csv")
+
+# create the tenure variable
+salaries <- salaries %>%
+  rename(name = employee_name) %>%
+  arrange(name) %>%
+  group_by(name) %>%
+  mutate(tenure = rank(year))
+```
+
+Basic stringr
+========================================================
+class: small-code
+First, let's take a look at what kind of job titles there are
+```{r}
+unique(salaries$position)
+```
+
+
+Basic stringr
+========================================================
+class: small-code
+- ```str_``` functions take vectors of text strings, return new vectors
+- ```str_detect()``` simply returns a logical vector
+    - Elements are true when the pattern was found, false when not
+```{r}
+unique(salaries$position) %>%
+  str_detect("advisor")
+```
+
+Basic stringr
+========================================================
+class: small-code
+- ```str_detect()``` is useful for subsetting data
+```{r}
+advisors <- salaries %>%
+  filter(str_detect(position, "advisor")) %>%
+  .$position %>% unique()
+advisors
+```
+
+Basic stringr
+========================================================
+class: small-code
+- ```str_replace()``` is critical for text cleaning
+- Looks for given pattern, and replaces with new string
+```{r}
+advisors[1:3] %>% str_replace("advisor", "party")
+```
+- If that new string is empty, text is simply deleted
+```{r}
+advisors[1:3] %>% str_replace("advisor", "")
+```
+
+Basic stringr
+========================================================
+class: small-code
+- ```str_replace_all()``` replaces all intances of pattern if it appears more than once in a string
+```{r}
+advisors[1:3] %>% str_replace(" ", "-")
+
+advisors[1:3] %>% str_replace_all(" ", "-")
+```
+
+Joins and Merges
+========================================================
+- Having multiple objects means you can merge them!
+    - ```dplyr``` has a number of "two-table" verbs for this
+- ```inner_join()``` only returns rows where IDs match
+- ```left_join()``` returns all rows, empty cells where IDs don't match
+    - ```right_join()``` is same, but with different column order
+- ```merge()``` from base package is most commonly used
+    - Use ```by.x``` and ```by.y``` arguments if ID columns have different names
+
+The broom package
+========================================================
+- Finally, I want to mention the ```broom``` package
+- Transforms output of many ```stats``` functions into a "tidy" format
+    - We'll focus on linear regression models
+- Two main functions: ```tidy()``` and ```augment()```
+    - ```tidy()``` describes the model coefficients
+    - ```augment()``` collects observation-level attributes
+    
+The broom package
+========================================================
+class: small-code
+- Run a linear regression model
+```{r}
+out <- salaries %>%
+  mutate(year_sub = year - 2000) %>%
+  lm(salary ~ as.factor(gender) + year_sub + tenure, data = .)
+out
+```
+
+The broom package
+========================================================
+class: small-code
+```{r}
+summary(out)
+```
+
+The broom package
+========================================================
+class: small-code
+```{r}
+str(out)
+```
+
+The broom package
+========================================================
+class: small-code
+Make it a tidy table!
+```{r}
+install.packages("broom", repos = 0)
+library(broom)
+
+tidy(out)
+```
+
+The broom package
+========================================================
+class: small-code
+Look at predictions and residuals
+```{r}
+augment(out) %>% head()
+```
+
+Bonus: Modeling in R
+========================================================
+- Details of linear models
+
+- Running OLS:
+```{r lm, eval=F}
+lm(formula = , data = , subset = , weights = , na.action = , ...)
+```
+
+Modeling: GLMs
+========================================================
+- Using generalized linear models
+- Different from STATA, only one function for all GLM
+    - Specify the link function as "family =" argument
+    - List of http://www.statmethods.net/advstats/glm.html
+    
+```{r glm, eval=F}
+glm(formula = , family = , data = , subset = , weights = , na.action = , ...)
+```
+
+
+Modeling: Ordered Logistic
+========================================================
+- Not included as a built-in function
+    - Install and library the ```MASS``` package
+    - "Proportional odds logistic regrssion"
+    - Use an ordered factor! (see intro slides)
+- More info (plus multinomial logit models) here:
+    - https://www.princeton.edu/~otorres/LogitR101.pdf
+    
+```{r polr, eval=F}
+polr(formula = , data = , subset = , weights = , na.action = , 
+     Hess = , model = , ...)
+```
+
+
+Questions?
+========================================================

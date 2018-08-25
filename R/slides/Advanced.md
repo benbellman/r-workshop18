@@ -1,0 +1,203 @@
+<style>
+.small-code pre code {
+  font-size: 1em;
+}
+</style>
+
+Advanced R Topics
+========================================================
+author: Ben Bellman
+date: August 30, 2017
+autosize: true
+incremental: false
+
+Preface
+========================================================
+- These are important topics, but...
+- Beginning users won't need them right away
+    - You have enough to learn in two days as is!
+- Important for advanced programming beyond simple analysis
+- Still, these are foundational, you should know *about* them
+    
+
+"If" and "Else" statements
+========================================================
+class: small-code
+- We can use the ```if()```function to only run a chunk of code using a conditional statement
+
+```r
+x <- 5
+if(x < 10){
+  x + 1
+}
+```
+
+```
+[1] 6
+```
+
+```r
+x <- 15
+if(x < 10){
+  x + 1
+}
+```
+
+"If" and "Else" statements
+========================================================
+class: small-code
+- If statements can be combined with more if statements, or they can be concluded with the ```else``` function
+
+```r
+x <- 15
+if(x < 10){
+  x + 1
+} else {
+  print("Statement was false")
+}
+```
+
+```
+[1] "Statement was false"
+```
+
+"While" loops
+========================================================
+class: small-code
+- Conditional statements can be used to control loops
+- If the statement is still true at the end of code block, the computer runs the code again
+- When the statement is evaluated as false, the loop stops
+
+```r
+x <- 1
+while(x < 8){
+  x <- x + 1
+  print(x)
+}
+```
+
+```
+[1] 2
+[1] 3
+[1] 4
+[1] 5
+[1] 6
+[1] 7
+[1] 8
+```
+
+"For" loops
+========================================================
+class: small-code
+- You can also loop through elements in a vector using the ```for()``` function
+
+```r
+library(tidyverse)
+
+for(year in 2010:2015){
+  paste("The year is", year) %>% print()
+}
+```
+
+```
+[1] "The year is 2010"
+[1] "The year is 2011"
+[1] "The year is 2012"
+[1] "The year is 2013"
+[1] "The year is 2014"
+[1] "The year is 2015"
+```
+
+
+"For" loops
+========================================================
+class: small-code
+- When beginners learn "for" loops, there's a danger they will use them inefficiently
+    - Classic example is working by rows on a dataset
+
+
+```r
+salaries <- read_csv("~/Google Drive/Computer Backup/R Workshop/Data/white-house-salaries.csv")
+
+for(a in 1:nrow(salaries)){
+  salaries$salary_ks[a] <- salaries$salary[a] / 1000
+}
+
+summary(salaries$salary_ks)
+```
+
+```
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00   45.00   61.95   76.41  102.00  225.00 
+```
+
+Iteration and Vectorization
+========================================================
+- Loops work through iteration
+    - It literally solves one problem at a time as it loops
+- By contrast, vectorization solves all problems at once using matrix algebra
+- Iteration is computationally intensive
+    - Increases analysis time and slows your computer
+    - When working with large data files, this can cripple your analysis (see: ```data.table``` package)
+- Vectorization should always be preferred
+    - All of the ```dplyr``` functions are vectorized processes
+    - Only use a loop when you must!
+
+
+Writing functions
+========================================================
+- Writing functions is difficult, but rewarding
+    - For a bit more work and thinking, you can save a lot of time in future coding
+- Define with the ```function()``` function
+- Set arguments in first line, use in following code chunk
+- Good idea to keep functions shor, you can call other functions!
+- My example: calculating the Theil Index of segregation
+
+
+Functions for Theil Index
+========================================================
+class: small-code
+- Input is matrix/data from of race counts by geographic unit
+- Functions assume each column is a racial group
+
+
+```r
+#Regional Entropy
+E <- function(tracts){
+  Race_pct <- apply(tracts, 2, sum) / sum(tracts)
+  return(0 - sum(Race_pct * (log(Race_pct) / log(ncol(tracts))), na.rm=TRUE))
+}
+```
+
+Functions for Theil Index
+========================================================
+class: small-code
+
+```r
+#Local Entropy
+E_k <- function(tracts){
+  Race_pct_k <- tracts / apply(tracts, 1, sum)
+  e_k <- apply(Race_pct_k * (log(Race_pct_k) / log(ncol(tracts))), 1, sum ,na.rm=TRUE)
+  return(0 - e_k)
+}
+```
+
+
+Functions for Theil Index
+========================================================
+class: small-code
+
+```r
+#Regional H (Theil index)
+H <- function(tracts, region){
+  e <- E(region)
+  e_k <- E_k(tracts)
+  t_k <- apply(tracts, 1, sum)
+  return(sum(t_k * (e-e_k) / (e * sum(t_k)), na.rm=TRUE))
+}
+```
+
+
+Questions?
+========================================================
+Let's talk sharing code!

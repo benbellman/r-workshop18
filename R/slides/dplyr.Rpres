@@ -1,0 +1,369 @@
+<style>
+.small-code pre code {
+  font-size: 1em;
+}
+</style>
+
+dplyr - Data Manipulation
+========================================================
+author: Ben Bellman
+date: August 29, 2017
+autosize: true
+incremental: true
+
+Frameworks for Extending R
+========================================================
+
+- So far, material has been from base packages
+- Packages offer special tools for loading and manipulating data
+    - ```data.table``` package for big data
+    - ```sp``` package for spatial data and GIS
+- We will focus on the ```tidyverse```
+    - Suite of six integrated packages for data analysis
+    - Other packages use same framework
+    - Some of the most popular R extensions
+    
+Loading packages
+========================================================
+class: small-code
+- We can manage packages through commands
+
+```{r}
+#Install from "cloud", automatically selects CRAN mirror
+install.packages("tidyverse", repos = 0)
+```
+
+- Only install once, but must load into library each session
+
+```{r}
+library(tidyverse)
+```
+
+The tidyverse Suite
+========================================================
+
+- ```tibble``` : A "modern" version of a data frame
+
+- ```purrr``` : Tools for programming functions
+- ```readr``` : Tools for importing text data files
+- ```tidyr``` : Tools for cleaning and transforming data
+- ```dplyr``` : Tools for data manipulation and analysis
+- ```ggplot2``` : Tools for data visualization
+
+The tidyverse Philosophy
+========================================================
+
+- ```tidyverse``` is a cohorent suite based on guiding principles
+        - Lead by Hadley Wickham, Head Scientist and RStudio
+
+- Tidy data is data where: 
+    1. Each variable is in a column.
+    2. Each observation is a row. 
+    3. Each value is a cell.
+
+- Code is written to be legible, read sequentially
+    - Implemented with ```%>%```, the piping operator
+
+- However, can conflict with other packages
+    
+
+The Tibble
+========================================================
+class: small-code
+- ```tibble``` introduces a data frame variant ```"tbl"```
+    - Essentially the same, but there are some technical differences
+```{r}
+tbl <- tibble(
+  x = 1:4, 
+  y = 1, 
+  z = x ^ 2 + y
+)
+tbl
+```
+
+The Tibble
+========================================================
+class: small-code
+- Referencing tibbles by column:
+```{r}
+tbl$x
+tbl[["x"]]
+tbl[[1]]
+```
+
+Using readr
+========================================================
+
+- Introduces new family of ```read_``` functions
+    - ```read_csv()```: comma separated (CSV) files
+    - ```read_tsv()```: tab separated files
+    - ```read_delim()```: general delimited files
+    - ```read_fwf()```: fixed width files
+    - ```read_table()```: tabular files where colums are separated by white-space.
+    - ```read_log()```: web log files
+- Functions from ```readr``` return data as tibbles
+
+Using readr
+========================================================
+class: small-code
+- Automatically prints class of columns
+```{r}
+salaries <- read_csv("~/Google Drive/Computer Backup/R Workshop/Data/white-house-salaries.csv")
+salaries
+```
+
+readr + haven + readxl
+========================================================
+class: small-code
+- The ```haven``` package extends the ```read_``` family to data from other stats packages
+    - ```read_dta()```
+    - ```read_sas()```
+    - ```read_spss()```
+- The ```readxl``` package loads Excel spreadsheets into R
+- Must be loaded separately from ```tidyverse```
+```{r}
+install.packages("haven", repos = 0)
+install.packages("readxl", repos = 0)
+library(haven)
+library(readxl)
+```
+
+Starting with dplyr
+========================================================
+
+- ```dplyr``` is how we can manipulate the data and run calculations
+    - Similar to working in STATA
+- Based on five main functions or "verbs"
+     - ```select()``` picks variables based on their names.
+     - ```filter()``` picks cases based on their values.
+     - ```arrange()``` changes the ordering of the rows.
+     - ```summarise()``` reduces multiple values down to a single summary.
+     - ```mutate()``` adds new variables that are functions of existing variables
+- Other functions and variants included
+
+Practice Data
+========================================================
+
+- We will use the White House Salaries dataset to learn these functions.
+- Nine variables
+    - Employee name, inferred gender
+    - Salary
+    - Position, full/part time status, year
+    - President, party, term
+- [Link to data.world page](https://data.world/chipoglesby/whitehousesalaries/workspace/file?filename=white-house-salaries.csv) for downloading and more info
+
+select() function
+========================================================
+class: small-code
+- ```select()``` creates a new tibble, keeping only the desired columns
+
+```{r}
+names(salaries)
+select(salaries, president, party, year)
+```
+
+select() function
+========================================================
+class: small-code
+- There are other functions that work inside of ```select()```
+- See: ```starts_with()``` or ```contains()``` or ```matches()```
+
+```{r}
+select(salaries, starts_with("s"))
+```
+
+rename() function
+========================================================
+class: small-code
+- ```rename()``` works like ```select```, but changes variable names
+    - keeps variables that aren't specified
+    - new column name goes on left hand side
+
+```{r}
+rename(salaries, name = employee_name)
+```
+
+
+filter() function
+========================================================
+class: small-code
+- Uses logical statements to subset rows, like if statements in STATA
+    - Returns tibble of data where statement is true
+```{r}
+yr_2013 <- filter(salaries, year == 2013)
+unique(yr_2013$year)
+unique(yr_2013$president)
+```
+
+Logical operators
+========================================================
+
+Description | Symbol
+------------- | -------------
+less than | ```<```
+less than or equal to | ```<=```
+greater than | ```>```
+greater than or equal to | ```>=```
+exactly equal to | ```==```
+not equal to | ```!=```
+Not x | ```!x```
+x OR y | ```x \\| y```
+x AND y | ```x & y```
+x within the set of y | ```x %in% y```
+
+slice() function
+========================================================
+class: small-code
+- ```slice()``` lets you subset rows by order in the table
+    - Similar to using ```[, ]``` notation
+```{r}
+slice(salaries, 100:105)
+```
+
+
+arrange() function
+========================================================
+class: small-code
+- Lets you reorder data rows according to variables
+     - Returns tibble, where ```base::order()``` returns row numbers
+     - use ```select()``` to reorder columns
+```{r}
+arrange(salaries, employee_name, year)
+```
+
+arrange() function
+========================================================
+class: small-code
+```{r}
+arrange(salaries, -salary)
+```
+
+
+mutate() function
+========================================================
+class: small-code
+- Creates new variables based on other
+```{r}
+new <- mutate(salaries, in_1000s = salary / 1000)
+names(new)
+summary(new$in_1000s)
+```
+
+
+transmute() function
+========================================================
+class: small-code
+- ```transmute()``` works the same way, but only returns new columns
+```{r}
+transmute(salaries, in_1000s = salary / 1000)
+```
+
+if_else() function
+========================================================
+class: small-code
+- Useful for creating dummy variables, applying functions based on a conditional statement
+```{r}
+new <- transmute(salaries, democrat = if_else(party == "democrat", 1, 0))
+summary(new)
+```
+
+summarise() function
+========================================================
+class: small-code
+- ```summarise()``` returns a new tibble with results of aggregate functions
+    - Best used with ```group_by()``` function
+    - Creates a "grouped" table, object can also be ungrouped
+    - ```summarise()``` output will have grouping variable as a column
+```{r}
+salaries %>%
+  group_by(gender) %>%
+  summarise(mean_salary = mean(salary))
+```
+
+Using the "pipe" operator
+========================================================
+- The ```%>%``` operator is the glue of ```tidyverse``` style
+    - Originally from ```magrittr``` package
+- Readable way to nest functions
+- Automatically inserts previous object/output into the first argument of the next function
+    - Creates "recipe" like style, each process appears in sequence
+    - The result being "piped" can also be referenced elsewhere with the ```.``` placeholder
+
+
+Using the dplyr workflow
+========================================================
+class: small-code
+- Let's practice using these functions together
+- Now we can introduce some functions for graphs and statistics from the base packages
+```{r}
+by_year <- salaries %>%
+  group_by(year) %>%
+  summarise(mean_salary = mean(salary))
+by_year
+```
+
+========================================================
+class: small-code
+```{r barplot, fig.width=10, fig.height=6}
+#generate bar chart
+barplot(height = by_year$mean_salary,
+        names.arg = by_year$year,
+        main = "Mean Salary by Year")
+```
+
+
+========================================================
+class: small-code
+- Let's create a new column with the length of tenure in years
+```{r}
+salaries <- salaries %>%
+  rename(name = employee_name) %>%
+  arrange(name) %>%
+  group_by(name) %>%
+  mutate(tenure = rank(year))
+
+select(salaries, name, tenure, salary)
+```
+
+========================================================
+class: small-code
+- Salary distribution by years in White House
+```{r}
+boxplot(salaries$salary ~ salaries$tenure)
+```
+
+========================================================
+class: small-code
+- Analyze employees by total tenure in White House
+```{r}
+by_tenure <- salaries %>% 
+  group_by(name) %>%      # limit by employee
+  arrange(name, tenure) %>%
+  summarise(tenure = last(tenure)) %>%
+  group_by(tenure) %>%    #analyze by tenure length
+  summarise(count = n()) %>%
+  mutate(pct = count / sum(count) * 100)
+```
+
+========================================================
+class: small-code
+```{r}
+by_tenure
+```
+
+========================================================
+class: small-code
+```{r}
+pie(by_tenure$pct, labels = by_tenure$tenure)
+```
+
+Any Questions?
+========================================================
+Try to think of questions for data we can answer together
+
+- Resources
+    - https://www.tidyverse.org/
+    - Online book: *R for Data Science* (http://r4ds.had.co.nz/)
+    - RStudio cheatsheets
+        - Help menu -> Cheatsheets
+

@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "library(tidyverse)\n\nsalaries <- read_csv(\"data/white-house-salaries.csv\")\n",
+    "created" : 1535146308313.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2185402437",
+    "id" : "FCE92A34",
+    "lastKnownWriteTime" : 1535146497,
+    "last_content_update" : 1535146497737,
+    "path" : "~/Documents/Computer Backup/Repos/r-workshop18/R/proj_test.R",
+    "project_path" : "R/proj_test.R",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
