@@ -7,62 +7,50 @@
 Introduction to R
 ========================================================
 author: Ben Bellman
-date: August 29, 2017
+date: August 28, 2018
 autosize: true
-incremental: true
+incremental: false
 
 What is R?
 ========================================================
 
-"R is an integrated suite of software facilities for data manipulation, calculation and graphical display."
+"R is an integrated suite of software facilities for data manipulation, calculation and graphical display." (R Project website)
 
-"Many users think of R as a statistics system. We prefer to think of it of an environment within which statistical techniques are implemented. R can be extended (easily) via packages. There are about eight packages supplied with the R distribution and many more are available through the CRAN family of Internet sites covering a very wide range of modern statistics."
+- Provides eight base packages for computing and data analysis
 
-Via [Project R website](https://www.r-project.org/about.html).
-- GNU License, open source
+- True strength of R is development commpunity, wealth of packages
 
-What is R?
-========================================================
+- Huge range of tools, R is becoming a flagship for academic software
 
-- Very flexible
+- Open source, ethos of reproducability and sharing
 
-- Tons of free resources, add-ons
-- Easy to write and distribute programs
-- Effective for scientific transparency
 
-How does R work?
-========================================================
-
-- Creates environment using memory on machine
-
-- Can load different datasets as separate objects
-- Install, manage, and use packages (suites of new functions and data types)
-- Create and store data, results, visualizations within environment
-- Export results as files, publish reports and distribute code online
-
-How do I use R?
-========================================================
-
-- R is a world all of its own
-    - Too many functions and quirks to cover in two days, or even a lifetime!
-- My goal is to give you understanding of system
-    - You will find own workflows/expertise with practice
-- The only way to really master R is to use it independently
-    - That means a lot of struggling, trial, error, and Google!
-    - Documentation, guides, and user questions are everywhere
-    - Some specific resources at end of these slides
+- I think of R as an ecosystem
+- All kinds of packages
+    - Foundational, popular, niche, big, small, etc.
     
-How do I use R?
+My goals for workshop
 ========================================================
 
-- Can be run locally, on server, or via cloud services
+- Introduce syntax and key functions
+- Showcase cool packages and functionality
+- Give you tools to start working with
+- But, these two days aren't enough!
+    - Find projects, work on short term goals
+    - Trial, error, pain, and Google!
+    - Working group, collaboration and sharing
+    - Resources at end of these slides
+    
+Using RStudio
+========================================================
 
-- Easiest with RStudio
-- Provides GUI for environment with four panels:
-    1. Main I/O Console
-    2. Scripts and markdown docs + data viewer
-    3. Summary of environment + command history
-    4. Computer files, plot viewer, package manager, help files, HTML viewer
+- Lots of tools
+- Intuitive and informative layout
+- Provides GUI for R environment with four panels:
+    - R console and system terminal
+    - Code and data viewer
+    - Plot viewer (and other stuff)
+    - Objects in environment (and other stuff)
 - Let's take a look!
 
 Plan for Workshop
@@ -71,22 +59,31 @@ Plan for Workshop
 - **Tues. Morning:** 
     - Introduction to R, Data Manipulation (```tidyverse``` and ```dplyr```)
 - **Tues. Afternoon:** 
-    - Data Visualization (```ggplot2```), Practice
+    - Data Visualization (```ggplot2```), Stats and Modeling
 - **Wed. Morning:** 
     - Cleaning Data, Advanced Topics
 - **Wed. Afternoon:** 
-    - Practice
+    - Twitter + Census APIs, network analysis, spatial data, web scraping
 
 Basics: Anatomy of a command
 ========================================================
-```obj <- funct(arg1, arg2 = True, arg3 = "setting", ...)```
-- ```obj``` = object where output of ```function``` is stored
-    - ```<-``` is the assignment operator for storing results
+
+```r
+obj <- funct(arg1 = data,
+             arg2 = T,
+             arg3 = "setting",
+             ...)
+```
+
+- ```obj``` = output is stored in object
+- ```<-``` = the assignment operator for storing results
+    - Results are printed to console if no assignment
 - ```funct``` = name of function being called
 - ```arg1``` = first argument is usually object/data being operated on
 - ```arg2, arg3``` = additional arguments that change how ```funct``` works
     - Can refer to true/false value, different methods, etc.
     - Have default values, so not always necessary to use them
+    - Functions also assume argument order, naming arguments not required
 
 Basics: Objects and Data
 ========================================================
@@ -168,7 +165,7 @@ Data: Vectors
 class: small-code
 - The ```c``` function "c"oerces elements into a vector
 - The ```str``` function lets us see the "str"ucture of the data
-- Vectors can also contain character strings and logical values (important for indexing)
+- Vectors can also contain character strings and logical values
 
 ```r
 c("Learning", "R", "is", "fun!")
@@ -189,9 +186,25 @@ c(T, F, F, F, T, F)
 Data: Vectors
 ========================================================
 class: small-code
-- You can reference cells of vectors using ```[n]``` function/notation
-    - ```n``` is number or vector of numbers
+- Values in vectors (and other data types) can be missing
+- ```NA``` is the most important missing value
+    - Used for both numeric and text data
 
+```r
+b <- c(1, 2, 3, NA, 5)
+is.na(b)
+```
+
+```
+[1] FALSE FALSE FALSE  TRUE FALSE
+```
+- Math functions also return ```Inf```, ```-Inf```, and ```NaN```
+
+Data: Vectors
+========================================================
+class: small-code
+- You can reference cells of vectors using ```[n]``` function/notation
+    - ```n``` is a number or vector of numbers/logical values
 
 ```r
 x <- c("Learning", "R", "is", "fun!")
@@ -202,6 +215,11 @@ x[1]
 [1] "Learning"
 ```
 
+Data: Vectors
+========================================================
+class: small-code
+
+
 ```r
 x[c(1, 4)]
 ```
@@ -210,22 +228,13 @@ x[c(1, 4)]
 [1] "Learning" "fun!"    
 ```
 
-Data: Vectors
-========================================================
-class: small-code
-- The index can also be a vector of logical values
-    - Later, we'll use conditional statements
-
-
 ```r
-index <- c(T, F, F, T)
-x[index]
+x[c(T, F, F, T)]
 ```
 
 ```
 [1] "Learning" "fun!"    
 ```
-
 
 Data: Vectors
 ========================================================
@@ -255,7 +264,8 @@ class: small-code
 - However, R can't give meaning to character strings on its own
 
 ```r
-summary(c("Red", "Blue", "Red", "Blue"))
+f <- c("Red", "Blue", "Red", "Blue")
+summary(f)
 ```
 
 ```
@@ -265,7 +275,8 @@ summary(c("Red", "Blue", "Red", "Blue"))
 - We can create a factor, which creates values according to category
 
 ```r
-summary(factor(c("Red", "Blue", "Red", "Blue")))
+f <- factor(f)
+summary(f)
 ```
 
 ```
@@ -276,7 +287,7 @@ Blue  Red
 Data: Factors
 ========================================================
 class: small-code
-- Creating a factor is similar to using labels for categories in STATA
+- Factors are similar to using labels for categories in Stata
 - R can also order the levels in factors
 
 ```r
@@ -316,17 +327,17 @@ class: small-code
 - You can create matrices from vectors
 
 ```r
-col1 <- c(11, 22, 33)
-col2 <- c(44, 55, 66)
-col3 <- c(77, 88, 99)
+col1 <- c(1, 2, 3)
+col2 <- c(4, 5, 6)
+col3 <- c(7, 8, 9)
 matrix(c(col1, col2, col3), ncol = 3)
 ```
 
 ```
      [,1] [,2] [,3]
-[1,]   11   44   77
-[2,]   22   55   88
-[3,]   33   66   99
+[1,]    1    4    7
+[2,]    2    5    8
+[3,]    3    6    9
 ```
 
 Data: Matrices
@@ -343,9 +354,9 @@ m
 
 ```
      [,1] [,2] [,3]
-[1,]   11   44   77
-[2,]   22   55   88
-[3,]   33   66   99
+[1,]    1    4    7
+[2,]    2    5    8
+[3,]    3    6    9
 ```
 
 ```r
@@ -353,7 +364,48 @@ m[2, 2]
 ```
 
 ```
-[1] 55
+[1] 5
+```
+
+Data: Lists
+========================================================
+class: small-code
+- Similar to a vector, but can contain multiple data types in on object, even other lists
+- Not critical for beginners, but new object types from packages are often built on lists
+
+
+```r
+l <- list(a, v, matrix(1:9, byrow = TRUE, nrow = 3))
+str(l)
+```
+
+```
+List of 3
+ $ : num 5
+ $ : chr [1:3] "abcd" "efgh" "ijkl"
+ $ : int [1:3, 1:3] 1 4 7 2 5 8 3 6 9
+```
+
+Data: Lists
+========================================================
+class: small-code
+- Reference list elements with double brackets ```[[ ]]```
+
+```r
+l[[2]]
+```
+
+```
+[1] "abcd" "efgh" "ijkl"
+```
+- Add ```[ ]``` to reference cells of object in list
+
+```r
+l[[3]][2, 2]
+```
+
+```
+[1] 5
 ```
 
 
@@ -370,26 +422,24 @@ data.frame(col1, col2, col3)
 
 ```
   col1 col2 col3
-1   11   44   77
-2   22   55   88
-3   33   66   99
+1    1    4    7
+2    2    5    8
+3    3    6    9
 ```
 
 Data: Data frames
 ========================================================
 class: small-code
 - Data frames store a variety of data types in columns of the same table
-    - Like a standard dataset in STATA
+    - Like a standard dataset in Stata
     - However, you can load as many data frames as you want!!!
 
 ```r
 col2 <- c("lmao", "brb", "smh")            #character
 col3 <- factor(c("Good", "Good", "Bad"))   #factor
 col4 <- c(T, F, T)                         #logical
-df <- data.frame(col1, col2, col3, col4, 
-                 stringsAsFactors = F)
+df <- data.frame(col1, col2, col3, col4, stringsAsFactors = F)
 ```
-- Note: R changes character data to factors by default when creating data frames
 
 Data: Data frames
 ========================================================
@@ -401,9 +451,9 @@ df
 
 ```
   col1 col2 col3  col4
-1   11 lmao Good  TRUE
-2   22  brb Good FALSE
-3   33  smh  Bad  TRUE
+1    1 lmao Good  TRUE
+2    2  brb Good FALSE
+3    3  smh  Bad  TRUE
 ```
 
 ```r
@@ -411,13 +461,13 @@ summary(df)
 ```
 
 ```
-      col1          col2             col3      col4        
- Min.   :11.0   Length:3           Bad :1   Mode :logical  
- 1st Qu.:16.5   Class :character   Good:2   FALSE:1        
- Median :22.0   Mode  :character            TRUE :2        
- Mean   :22.0                                              
- 3rd Qu.:27.5                                              
- Max.   :33.0                                              
+      col1         col2             col3      col4        
+ Min.   :1.0   Length:3           Bad :1   Mode :logical  
+ 1st Qu.:1.5   Class :character   Good:2   FALSE:1        
+ Median :2.0   Mode  :character            TRUE :2        
+ Mean   :2.0                                              
+ 3rd Qu.:2.5                                              
+ Max.   :3.0                                              
 ```
 
 Data: Data frames
@@ -442,9 +492,9 @@ df
 
 ```
   col1 col2 col3  col4 new
-1   11 lmao Good  TRUE   0
-2   22  brb Good FALSE   0
-3   33  smh  Bad  TRUE   0
+1    1 lmao Good  TRUE   0
+2    2  brb Good FALSE   0
+3    3  smh  Bad  TRUE   0
 ```
 
 Data: Data frames
@@ -456,7 +506,8 @@ class: small-code
 
 ```r
 #change to own file path
-salaries <- read.csv("~/Google Drive/Computer Backup/R Workshop/Data/white-house-salaries.csv")
+library(here)
+salaries <- read.csv(here("data","white-house-salaries.csv"))
 summary(salaries)
 ```
 
@@ -495,46 +546,28 @@ summary(salaries)
               
 ```
 
-Data: Lists
+Basics: Classes
 ========================================================
-class: small-code
-- Similar to a vector, but can contain multiple data types in on object, even other lists
-- Not critical for beginners, but new object types from packages are often built on lists
 
+- These are the main data types, but there are others
 
-```r
-l <- list(a, v, matrix(1:9, byrow = TRUE, nrow = 3), salaries)
-summary(l)
-```
-
-```
-     Length Class      Mode     
-[1,] 1      -none-     numeric  
-[2,] 3      -none-     character
-[3,] 9      -none-     numeric  
-[4,] 9      data.frame list     
-```
-
-Data: Lists
-========================================================
-class: small-code
-- Reference list elements with double brackets ```[[ ]]```
+- Other packages introduce their own classes
+- Checking object classes is a good debugging tool
 
 ```r
-l[[2]]
+class(df)
 ```
 
 ```
-[1] "abcd" "efgh" "ijkl"
+[1] "data.frame"
 ```
-- Add ```[ ]``` to reference cells of object in list
 
 ```r
-l[[3]][2, 2]
+class(df$col4)
 ```
 
 ```
-[1] 5
+[1] "logical"
 ```
 
 Basics: Functions
@@ -542,81 +575,39 @@ Basics: Functions
 
 - When coding, think of objects as nouns and functions as verbs
 
-- R is a "functional language"
-    - Can be directy referenced as objects and inputs without storing in memory
-    - Packages are suites of functions
-    - Can write own functions (we'll discuss later!)
+- Easy to create custom functions to simplify code
+    - Allows for easy distribution
+    - Packages are suites of functions that work together
 
 - Must pay attention to required arguments of functions
 
-- Can always view CRAN documentation of function with ```?function```
+- Can always view CRAN documentation of a function with ```?funct_name```
+    - See description and all possible arguments 
 
-Functions: Math operations
-========================================================
 
-- Some numeric operations:
-
-Operation | Syntax
-------------- | -------------
-Addition | ```a + b```
-Subtraction | ```a - b```
-Negative | ```-a```
-Multiplication | ```a * b```
-Division | ```a / b```
-Exponents | ```a ^ b```
-Square root | ```sqrt(a)```
-Natrual and common logs | ```log(a)```, ```log10(a)```
-
-Functions: Math operations
-========================================================
-
-- Some vector/matrix operations:
-
-Operation | Syntax
-------------- | -------------
-Sum | ```sum(a)```
-Matrix multiplication | ```a %*% b```
-Mean | ```mean(a)```
-Standard deviation | ```sd(a)```
-Quantiles | ```quantile(a)```
-Min or Max | ```min(a)```, ```max(a)```
-Rescale or Recenter | ```scale(a)```
-
-Functions: Strings
-========================================================
-
-- Some character string functions:
-
-Operation | Syntax
-------------- | -------------
-Extract substring | ```substr(a, start = 1, stop = n)```
-Splitting | ```strsplit(a, split = "")```
-Combining text | ```paste(a, ..., sep = "")```
-Convert all cases | ```toupper(a)```, ```tolower(a)```
-
-Functions: And beyond
-========================================================
-
-- There's a huge range of built-in functions and utilities
-
-- We will discuss more after break
-- However, I can't possibly cover them all
-    - (Not to mention all the packages out there)
-- So if you're wondering: "Is there a function for..."
-    - The answer is probably yes!
 
 Some resources
 ========================================================
 
 - Important resources distributed through CRAN infrastructure
     - Documentation and vignettes by package authors
-- Past questions on StackExchange and sub-forums
+- Past questions on StackExchange and sibling forums
 - Lots of resources at https://rdrr.io/
 - Dedicated websites for packages like ```ggplot2```
 - Articles at sites like https://www.r-bloggers.com/
 - Style guide for readable R code by Hadley Wickham:
     - http://adv-r.had.co.nz/Style.html
 - Plenty of books (digital and print, free and paid)
-- And much, much, much more!
+    - Twitter recipes: https://rud.is/books/21-recipes/
 
+Great #rstats Twitter Follows
+========================================================
+
+- Mara Averick (@dataandme)
+
+- Sharon Machlis (@sharon000)
+- Jenny Bryan (@JennyBryan)
+- Angela Li (@CivicAngela)
+- Kyle Walker (@kyle_e_walker)
+- Thomas Mock (@thomas_mock)
 

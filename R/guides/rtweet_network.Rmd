@@ -1,0 +1,172 @@
+---
+title: "Twitter Data and Network Analysis with R"
+author: "Ben Bellman"
+date: "8/29/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This guide will illustrate how to use the `rtweet` package to download Twitter data, and introduce network analysis with `tidygraph` package. Unless you're already registered with the Twitter API, functions downloading data won't work. Download the saved data files to work with and replicate the network analysis.
+
+## Using `rtweet`
+
+The `rtweet` package directly interfaces with Twitter's full API for app development. This means you will need to register with Twitter separately at <https://apps.twitter.com/>, which will eventually will be retired for <https://developer.twitter.com/>. This will provide you with unique keys to access the API. While you can input API keys directly from R scripts, I recommend adding them to a system file (~/.Renviron) to keep that information private. Finally, you'll need to use those keys to create and authenticate a token file before you're granted access to the API. I found these pages absolutely essential in setting all this up:
+
+* <https://rud.is/books/21-recipes/using-oauth-to-access-twitter-apis.html>
+* <https://csgillespie.github.io/efficientR/r-startup.html#rprofile>
+* <https://rviews.rstudio.com/2017/04/19/r-for-enterprise-understanding-r-s-startup/>
+
+[Bob Rudis's whole book](https://rud.is/books/21-recipes/index.html) is a great way to dig into rtweet's functionality. It's a hobbyist work-in-progress, but I've found it very helpful.
+
+## Analyzing followers
+
+`rtweet` is a very large package with a lot of functionality. Twitter maintains many different kinds of data, and ways to access it. You can identify trends, download tweets based on hashtags, identify and analyze retweets and favorites, look at following patterns, and more.
+
+I'm interested in learning more about my social network on Twitter. I follow people from many  distinct communities (academia, news and politics, soccer analysis, data science, etc.), and I'd like to see how insular or porous those communities might be.
+
+First, we need to load the packages.
+
+```{r}
+library(tidyverse)
+library(rtweet)
+```
+
+Before we look at friends and followers, let's grab some tweets and see what they look like.
+
+```{r}
+# we can get recent tweets by hashtag
+# returns data from the last 6-9 days
+rstats <- search_tweets("#rstats", n = 50)
+
+# and also by account handle
+ben <- search_tweets("BenInquiring", n = 50)
+ben
+```
+
+You can also get basic information about a specific account.
+
+```{r}
+ben_profile <- search_users("BenInquiring")
+ben_profile$name
+ben_profile$description
+ben_profile$location
+```
+
+When working with APIs, it's important to remember rate limiting. API queries cost server time and money, so rate limiting API keys helps regulate traffic. The Twitter API is actually a collection of smaller APIs, all of which have different limits. We can check our key's status on all limits with the `rate_limit()` function. The reset column is time remaining in minutes.
+
+```{r}
+rate_limit()
+```
+
+The rate limit for accessing friends (Twitter's term for who an account follows) is 15 requests per 15 minutes. I follow 757 people, which would take nearly 13 hours to download. Instead, I'll analyze 75 account sample of my 231 followers, telling R to sleep for 15 minutes before pulling the next 15 accounts' friends.
+
+```{r}
+my_followers <- get_followers("BenInquiring")
+glimpse(my_followers)
+```
+
+The result is a `tbl` with one column, a de-identified account ID. I prefer to treat it as a vector, and sample 75 accounts.
+
+```{r}
+ids <- sample.int(my_followers$user_id, 75, useHash = FALSE)
+```
+
+Now I'll loop through the IDs and pause the loop every 15 accounts. See you in an hour!
+
+```{r, eval = F}
+# create empty list to store results
+friends <- list()
+
+# start loop
+for (a in 1:length(ids)){
+  friends[[a]] <- get_friends(ids[a])
+  
+  # pause if divisible by 15
+  if (a %% 15 == 0){
+    Sys.sleep(15*60) # must enter time in seconds
+  }
+}
+
+# Combine data tables in list
+friends <- bind_rows(friends) %>% 
+  rename(friend = user_id)
+
+library(here)
+write_csv(friends, here("data", "twitter_friends.csv"))
+```
+
+Unfortunately, all but 37 API queries I tried failed. One message said I wasn't authorized, another said the page didn't exist any more. Still, we now have edge data for a graph. Let's see if any of my followers are following each other.
+
+## Using `tidygraph`
+
+For a detailed introduciton on `tidygraph`, look at [this post from the package's author](https://www.data-imaginist.com/2017/introducing-tidygraph/): 
+
+Let's bring in the Twitter friend data, and turn it into an `tbl_graph` object. But first, let's see how many of these follower's friends are also my followers.
+
+```{r, echo=F}
+library(here)
+```
+```{r}
+friends <- read_csv(here("data", "twitter_friends.csv"))
+filter(friends, friend %in% user)
+```
+
+Uh oh! None these 37 followers are following any of my other followers. Let's check instead to see if they're following any of the same people (apart from me). To do this, I'll count the times an ID appears in the "friend" column, and drop all the rows that appear once.
+
+```{r}
+net <- friends %>% 
+  group_by(friend) %>% 
+  mutate(count = n()) %>% 
+  ungroup() %>% 
+  filter(count > 1)
+glimpse(net)
+```
+
+We've got links! Let's create a directed `tbl_graph`!
+
+```{r}
+library(tidygraph)
+g <- net %>% 
+  select(user, friend) %>%  # drop the count column
+  as_tbl_graph()
+g
+```
+
+Network analysis is best expressed with visualizations, which can be implemented with the `ggplot` framework using the `ggraph` package.
+
+```{r}
+library(ggraph)
+ggraph(g) +
+  geom_edge_link() +
+  geom_node_point(size = 3, colour = 'steelblue') +
+  theme_graph()
+```
+
+It certainly looks like certain nodes are more connected to other nodes, and that there are clusters of nodes that are closest to this central links. These are probably my followers, who are then following lots of other accounts that can overlap. We can visualize the direction with the `arrow=` argument of `geom_edge_link()` and base `arrow()` graphic function. I'll also drop the nodes to help see the arrows.
+
+```{r}
+ggraph(g) +
+  geom_edge_link(edge_width = 0.25, arrow = arrow(30, unit(.15, "cm"))) +
+  theme_graph()
+```
+
+Let's calculate the centrality of the nodes, and visualize this attribute. `tidygraph` contains LOTS different measures of centrality, so I'll use betweenness, since that is the concept I'm most familiar with. This is an attribute for nodes, so we have to `activate()` that part of the `g` object. Note that I'm making the graph undirected, since only my own followers have connections to other nodes when links are directed.
+
+```{r}
+g2 <- net %>% 
+  select(user, friend) %>%  # drop the count column
+  as_tbl_graph(directed = F) %>%  # make undirected
+  activate(nodes) %>% 
+  mutate(centrality = centrality_betweenness())
+g2
+
+ggraph(g2) +
+  geom_edge_link() +
+  geom_node_point(aes(size = centrality, colour = centrality)) +
+  theme_graph()
+```
+
+This brief tutorial only scratches the surface with both `rtweet` and `tidygraph`, but it shows that with a little extra background, R can make API calls and new data formats fairly easy to work with. It takes a lot of searching through documents to find the right functions and arguments, but it's within your grasp!

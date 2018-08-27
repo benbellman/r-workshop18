@@ -7,7 +7,7 @@
 Advanced R Topics
 ========================================================
 author: Ben Bellman
-date: August 30, 2017
+date: August 29, 2018
 autosize: true
 incremental: false
 
@@ -17,23 +17,19 @@ Preface
 - Beginning users won't need them right away
     - You have enough to learn in two days as is!
 - Important for advanced programming beyond simple analysis
-- Still, these are foundational, you should know *about* them
+- These are foundational, you will need them eventually
     
 
 "If" and "Else" statements
 ========================================================
 class: small-code
-- We can use the ```if()```function to only run a chunk of code using a conditional statement
+- We can use the ```if ()```statement to run code only if a condition is met
 ```{r}
 x <- 5
-if(x < 10){
-  x + 1
-}
+if (x < 10) {x + 1}
 
 x <- 15
-if(x < 10){
-  x + 1
-}
+if (x < 10) {x + 1}
 ```
 
 "If" and "Else" statements
@@ -57,7 +53,7 @@ class: small-code
 - When the statement is evaluated as false, the loop stops
 ```{r}
 x <- 1
-while(x < 8){
+while (x < 8){
   x <- x + 1
   print(x)
 }
@@ -71,7 +67,8 @@ class: small-code
 library(tidyverse)
 
 for(year in 2010:2015){
-  paste("The year is", year) %>% print()
+  paste("The year is", year, sep = " ") %>% 
+    print()
 }
 ```
 
@@ -80,82 +77,63 @@ for(year in 2010:2015){
 ========================================================
 class: small-code
 - When beginners learn "for" loops, there's a danger they will use them inefficiently
-    - Classic example is working by rows on a dataset
+    - My early mistake was looping over rows of data
 
 ```{r}
-salaries <- read_csv("~/Google Drive/Computer Backup/R Workshop/Data/white-house-salaries.csv")
+library(here)
+salaries <- read_csv(here("data","white-house-salaries.csv"))
 
+t1 <- Sys.time()
 for(a in 1:nrow(salaries)){
-  salaries$salary_ks[a] <- salaries$salary[a] / 1000
+  salaries$salary[a] / 1000
 }
-
-summary(salaries$salary_ks)
+t2 <- Sys.time()
+loop <- t2 - t1
+loop
 ```
 
 Iteration and Vectorization
 ========================================================
 - Loops work through iteration
     - It literally solves one problem at a time as it loops
-- By contrast, vectorization solves all problems at once using matrix algebra
-- Iteration is computationally intensive
-    - Increases analysis time and slows your computer
-    - When working with large data files, this can cripple your analysis (see: ```data.table``` package)
-- Vectorization should always be preferred
-    - All of the ```dplyr``` functions are vectorized processes
-    - Only use a loop when you must!
+- By contrast, vectorized code uses the computer to process things simultaneously
+- `dplyr` functions are vectorized processes
+- `map()` from the `purrr` package in `tidyverse` vectorizes functions over lists and vectors
+- Only use a loop when you must!
 
+Loop vs. Vectorization
+========================================================
+class: small-code
+```{r}
+t3 <- Sys.time()
+invisible(salaries$salary / 1000)   # suppress output
+t4 <- Sys.time()
+vect <- t4 - t3
+
+loop
+vect
+
+0.01929402 / 0.003953934  # How many times longer was loop?
+```
 
 Writing functions
 ========================================================
-- Writing functions is difficult, but rewarding
-    - For a bit more work and thinking, you can save a lot of time in future coding
+- Writing functions has a learning curve, but is rewarding
+    - Save time and space
+    - Make code easy to share and run
+    - Easier to maintain and improve
 - Define with the ```function()``` function
-- Set arguments in first line, use in following code chunk
-- Good idea to keep functions shor, you can call other functions!
-- My example: calculating the Theil Index of segregation
+- Arguments define the objects refernced in function code
+- Good idea to keep functions short and nest them
 
-
-Functions for Theil Index
+RMarkdown and RStudio
 ========================================================
-class: small-code
-- Input is matrix/data from of race counts by geographic unit
-- Functions assume each column is a racial group
-
-```{r}
-#Regional Entropy
-E <- function(tracts){
-  Race_pct <- apply(tracts, 2, sum) / sum(tracts)
-  return(0 - sum(Race_pct * (log(Race_pct) / log(ncol(tracts))), na.rm=TRUE))
-}
-```
-
-Functions for Theil Index
-========================================================
-class: small-code
-```{r}
-#Local Entropy
-E_k <- function(tracts){
-  Race_pct_k <- tracts / apply(tracts, 1, sum)
-  e_k <- apply(Race_pct_k * (log(Race_pct_k) / log(ncol(tracts))), 1, sum ,na.rm=TRUE)
-  return(0 - e_k)
-}
-```
-
-
-Functions for Theil Index
-========================================================
-class: small-code
-```{r}
-#Regional H (Theil index)
-H <- function(tracts, region){
-  e <- E(region)
-  e_k <- E_k(tracts)
-  t_k <- apply(tracts, 1, sum)
-  return(sum(t_k * (e-e_k) / (e * sum(t_k)), na.rm=TRUE))
-}
-```
-
+- I made all these materials inside RStudio!
+- Lots of ways to generate documents with RMarkdown, which is integrated into RStudio development tools
+    - Reports, slides, etc. with embedded code and results
+- You can also create websites, like "book sites", blog posts, and personal sites for professional exposure
+    - This is on my to-do list!
+    - (working group plug)
 
 Questions?
 ========================================================
-Let's talk sharing code!

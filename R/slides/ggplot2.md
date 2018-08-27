@@ -7,9 +7,21 @@
 ggplot2 - Data Visualization
 ========================================================
 author: Ben Bellman
-date: August 29, 2017
+date: August 28, 2018
 autosize: true
-incremental: true
+incremental: false
+
+Base R Graphics
+========================================================
+
+- Base functions for graphics are ugly and outdated
+
+- However, they can be useful in a pinch, especially `plot()`
+    - Good example of methods in R
+    - Different functionality for different classes
+    - `plot.histogram()` vs. `plot.xy()`
+    - Packages can add new methods
+    - When in doubt, give `plot()` a try!
 
 Advantages of ggplot2
 ========================================================
@@ -19,21 +31,31 @@ Advantages of ggplot2
 - Uses logic similar to dplyr and piping
 - Full suite of functions for customizing graphs
 - Clean and professional visual styles
-- A huge improvement over base graphics capabilities
-    - Unintuitive customization and bland look
-    - See end of ```dplyr``` slides for examples
-- Useful extention for making maps, ```ggmap```
+- Lots of accessory packages, like `ggmap` and `gganimate`
 
 Logic of ggplot2
 ========================================================
 
-- Every plot is initialzied with ```ggplot()```function
-- In this first function, define data and ```aes()``` specs
+- Initialize with ```ggplot()```function
+- Define data and ```aes()``` arguments:
     - Columns for x and y axes
     - Data groupings, etc.
 - Define plot type (geometry), color schemes, labels, etc. with additional functions
     - These can have their own ```aes()``` settings
-- String functions together using ```+``` operator, similar to ```%>%``` in ```dplyr```
+- Connect functions using ```+``` operator, like ```%>%``` in ```dplyr```
+
+Some aes() arguments
+========================================================
+
+Argument  | Property
+------------- | -------------
+x  |  x values
+y  |  y values
+col  |  color of line/point
+fill  |  color of area
+alpha  |  transparency
+size  |  size of point/line
+shape  |  point symbol
 
 Setting up
 ========================================================
@@ -42,8 +64,9 @@ We'll start with the White House salaries data from the ```dplyr``` slides
 
 ```r
 library(tidyverse)
+library(here)
 
-salaries <- read_csv("~/Google Drive/Computer Backup/R Workshop/Data/white-house-salaries.csv")
+salaries <- read_csv(here("data","white-house-salaries.csv"))
 
 # create the tenure variable
 salaries <- salaries %>%
@@ -53,83 +76,90 @@ salaries <- salaries %>%
   mutate(tenure = rank(year))
 ```
 
-Building a plot: Starting
+Starting
 ========================================================
 class: small-code
-Once we've initialized with ```ggplot()```, all we need to add is a geometry feature and a plot will generate
+Once we've initialized with ```ggplot()```, we add a geometry feature to generate a basic graph
 
 ```r
 ggplot(salaries, aes(x = year, y = salary)) +
   geom_point()
 ```
 
-Building a plot: Starting
+Starting a plot
 ========================================================
 class: small-code
 ![plot of chunk plot1_1](ggplot2-figure/plot1_1-1.png)
 
-Building a plot: Geometry
+Starting a plot
+========================================================
+
+- When using new plot types, I like to look up its page on the package website
+
+- Lets take a look at the `geom_point()` documentation and see some ways it can be used:
+- https://ggplot2.tidyverse.org/reference/geom_point.html
+
+Building geometries
 ========================================================
 class: small-code
-```geom_``` and ```stat_``` functions add graphical features to the plot
-- ```ggplot2``` can represent all data, or apply functions to summarize graphically
 
 ```r
 ggplot(salaries, aes(x = year, y = salary)) +
-  geom_line() + 
-  geom_smooth(aes(col = gender), 
-              method = "loess")
+  geom_point(alpha = .1) + 
+  geom_smooth(aes(col = gender, fill = gender), method = "loess")
 ```
-- You can add multiple geometries to the same plot
-- ```geom_``` and ```stat_``` work the same, but ```stat_``` emphasizes the transformation over visual appearance
 
-Building a plot: Geometry
+
+Building geometries
 ========================================================
 class: small-code
 ![plot of chunk plot2_1](ggplot2-figure/plot2_1-1.png)
 
 
-Building a plot: Labels
+Labels
 ========================================================
 class: small-code
-There are functions for changing plot text and axis labels
+There are functions for changing plot text, axis formats, and specifying colors and legends
 
 ```r
 ggplot(salaries, aes(x = year, y = salary)) +
-  geom_point() + 
-  geom_smooth(aes(col = gender), method = "loess") +
-  xlab("Year") +
-  ylab("Employee Salary for Year ($)") +
-  ggtitle("White House Salaries Since 2001")
+  geom_point(alpha = .05) +                              # alpha sets transparency
+  geom_smooth(aes(col = gender), method = "loess") +     # color by gender
+  labs(x = "Year",                                       # change labels
+       y = "Employee Salary for Year ($)",
+       title = "White House Salaries Since 2001") +
+  scale_color_manual(name = "Gender",                    # set legend attributes
+                       values = c("green", "blue"),
+                       breaks = c("female", "male"),
+                       labels = c("Women", "Men"))
 ```
 
 
-Building a plot: Labels
+Labels
 ========================================================
 class: small-code
-There are functions for changing plot text and axis labels
 ![plot of chunk plot3_1](ggplot2-figure/plot3_1-1.png)
 
-Building a plot: Themes
+Themes
 ========================================================
 class: small-code
 Other functions change the overall look if the grid
 
 ```r
 ggplot(salaries, aes(x = year, y = salary)) +
-  geom_point() + 
+  geom_point(alpha = .05) + 
   geom_smooth(aes(col = gender), method = "loess") +
-  theme_bw()
+  theme_minimal()
 ```
 - Also possible to create custom themes
 
-Building a plot: Themes
+Themes
 ========================================================
 class: small-code
 ![plot of chunk plot4_1](ggplot2-figure/plot4_1-1.png)
 
 
-Building a plot: Scales, colors, and more
+Scales, colors, and more
 ========================================================
 - Functions for defining scales
     - ```scale_x_continuous()```, ```scale_y_discrete()```, ```scale_x_log10()```, ```scale_y_reverse()```, etc.
@@ -140,7 +170,7 @@ Building a plot: Scales, colors, and more
     - Reliable schemes with ```scale_color_brewer()```
     - ```scale_size_manual()```, ```scale_shape_manual()```, ```scale_alpha_manual()```, etc.
 
-Building a plot: Scales, colors, and more
+Scales, colors, and more
 ========================================================
 - Add extra lines
     - ```geom_abline()```, ```geom_vline()```, ```geom_hline()```
@@ -148,6 +178,7 @@ Building a plot: Scales, colors, and more
     - ```guide_colorbar()``` and ```guide_legend()```
 - Faceting multiple plots into one window
     - ```facet_grid()``` and ```facet_wrap()```
+- Lots of `theme()` options
 
 Navigating ggplot2 functions
 ========================================================
@@ -156,43 +187,41 @@ Navigating ggplot2 functions
     - Important to use documentation and experiment
     - http://ggplot2.tidyverse.org/reference/
 - If you can dream it, you can built it!
-- I'll walk through some different plots
-- End with ```ggmap``` and NYC Stop-and-Frisk data
-- Questions and independent work
+- Let's look at more examples
 
-Visualizing Distributions: Histogram
+Histogram
 ========================================================
 class: small-code
 Create a histogram of salaries
 
 ```r
 salaries %>%
-ggplot() +
-  geom_histogram(aes(salary))
+ggplot(aes(x = salary)) +
+  geom_histogram()
 ```
 
-Visualizing Distributions: Histogram
+Histogram
 ========================================================
 class: small-code
 ![plot of chunk plot5_1](ggplot2-figure/plot5_1-1.png)
 
-Visualizing Distributions: Frequency polygon
+Histogram
 ========================================================
 class: small-code
-Compare frequencies for men and women
+- Let's stack the area according to president and change the bin width
 
 ```r
 salaries %>%
-ggplot() +
-  geom_freqpoly(aes(salary, col = gender))
+ggplot(aes(x = salary, fill = president)) +
+  geom_histogram(binwidth = 5000)
 ```
 
-Visualizing Distributions: Frequency polygon
+Histogram
 ========================================================
+class: small-code
 ![plot of chunk plot7_1](ggplot2-figure/plot7_1-1.png)
 
-
-Visualizing Distributions: Boxplot
+Box plots
 ========================================================
 class: small-code
 Look at salaries for 1-5 years of tenure
@@ -206,169 +235,67 @@ salaries %>%
 ```
 
 
-Visualizing Distributions: Boxplot
+Box plots
 ========================================================
 ![plot of chunk plot6_1](ggplot2-figure/plot6_1-1.png)
 
 
-Visualizing Distributions: Violin
+Violin plots
 ========================================================
 class: small-code
 Look at salaries for 1-5 years of tenure
 
 ```r
-salaries %>%
-  filter(tenure >= 1 & tenure <= 5) %>%
-  ggplot(aes(tenure, salary, group = tenure)) +
+salaries %>% 
+  ggplot(aes(tenure, salary, group = as.factor(tenure))) +
     geom_violin(aes(col = as.factor(tenure),
-                    fill = as.factor(tenure)), 
-                    show.legend = F) +
+                    fill = as.factor(tenure))) +
+    theme(legend.position="none") +
     coord_flip()
 ```
 
 
-Visualizing Distributions: Violin
+Violin plots
 ========================================================
 ![plot of chunk plot8_1](ggplot2-figure/plot8_1-1.png)
 
 
-Visualizing Distributions: Density and facet plots
+Density and facet plots
 ========================================================
 class: small-code
 Look at salaries for 1-5 years of tenure
 
 ```r
 salaries %>%
-  ggplot() +
-    geom_density(aes(salary, col = gender, group = gender)) +
-    facet_grid(. ~ president)
+  ggplot(aes(salary, col = gender, fill = gender)) +
+    geom_density(alpha = 0.4) +
+    facet_grid(president ~ .)
 ```
 
 
-Visualizing Distributions: Density and facet plots
+Density and facet plots
 ========================================================
 ![plot of chunk plot9_1](ggplot2-figure/plot9_1-1.png)
 
-ggmap: Getting started
+Saving plots
 ========================================================
 class: small-code
-- Syntax and logic is same as ```ggplot()```
-    - Initialized with ```ggmap()```
-    - All ```ggplot2``` graphics are compatible
-    - ```aes()``` syntax is remains the same
-- Plot latitude/longitude coordinates over a basemap image
-    - ```get_map``` retrieves a basemap
-    - ```ggmap()``` function generates a plot around this map
-    - Points represented or summarized with ```geom```
+- It's easy to save plots with `ggsave()`
+- It determines output from the extension in the file path 
+- `here()` is creating a new folder in the project
 
 ```r
-install.packages("ggmap", repos = 0)
-library(ggmap)
+salaries %>%
+  ggplot(aes(salary, col = gender, fill = gender)) +
+    geom_density(alpha = 0.4) +
+    facet_grid(president ~ .) +
+    ggsave(here("results", "test_plot.pdf"), width = 5, height = 4)
 ```
 
-
-Mapping data
+Saving plots
 ========================================================
-class: small-code
-- 2014 NYPD Stop, Question, and Frisk data
-- Has geocoded location in a different coordinate system
-    - Must reproject coordinates with 
-- Downloaded in excel file, must use ```readxl```
+![plot of chunk unnamed-chunk-3](ggplot2-figure/unnamed-chunk-3-1.png)
 
-```r
-install.packages("readxl", repos = 0)
-library(readxl)
-nyc_sqf <- read_xlsx("~/Google Drive/Computer Backup/R Workshop/Data/2014_sqf_web.xlsx")
-```
-
-Mapping data
-========================================================
-class: small-code
-- Project coordinates as latitude/longitude
-
-```r
-install.packages("rgdal", repos = 0)
-library(rgdal)
-
-lon_lat <- nyc_sqf %>% 
-  select(xcoord, ycoord) %>%
-  as.matrix() %>%
-  project(proj = "+proj=lcc +lat_1=40.66666666666666 +lat_2=41.03333333333333 +lat_0=40.16666666666666 +lon_0=-74 +x_0=300000 +y_0=0 +ellps=GRS80 +datum=NAD83 +to_meter=0.3048006096012192 +no_defs", inv = TRUE)
-
-nyc_sqf$lon <- lon_lat[,1]
-nyc_sqf$lat <- lon_lat[,2]
-```
-
-Mapping Brooklyn
-========================================================
-class: small-code
-
-```r
-get_map(location = "brooklyn", 
-        maptype = "toner-lite",
-        zoom = 12) %>%
-  ggmap() +
-  coord_cartesian() +
-  geom_hex(data = nyc_sqf, aes(lon, lat), alpha = 0.65, na.rm = TRUE) +
-  scale_fill_gradient(low = "#ffffff", high = "#ce1c1c")
-```
-
-Mapping Brooklyn
-========================================================
-![plot of chunk map1_1](ggplot2-figure/map1_1-1.png)
-
-Mapping the Bronx
-========================================================
-class: small-code
-
-```r
-get_map(location = "bronx", 
-        maptype = "toner-lite",
-        zoom = 12) %>%
-  ggmap() +
-  coord_cartesian() +
-  geom_hex(data = nyc_sqf, aes(lon, lat), alpha = 0.65, na.rm = TRUE) +
-  scale_fill_gradient(low = "#ffffff", high = "#ce1c1c")
-```
-
-Mapping the Bronx
-========================================================
-![plot of chunk map2_1](ggplot2-figure/map2_1-1.png)
-
-
-Mapping Port Authority
-========================================================
-class: small-code
-
-```r
-get_map(location = "port authority bus terminal", 
-        maptype = "roadmap",
-        zoom = 16) %>%
-  ggmap() +
-  geom_point(data = nyc_sqf, aes(lon, lat), col = "#ce1c1c", na.rm = TRUE)
-```
-
-Mapping Port Authority
-========================================================
-![plot of chunk map3_1](ggplot2-figure/map3_1-1.png)
-
-
-
-Mapping Downtown
-========================================================
-class: small-code
-
-```r
-get_map(location = "washington square park", 
-        maptype = "satellite",
-        zoom = 14) %>%
-  ggmap() +
-  geom_density_2d(data = nyc_sqf, aes(lon, lat), col = "#f8c9ca", na.rm = TRUE)
-```
-
-Mapping Downtown
-========================================================
-![plot of chunk map4_1](ggplot2-figure/map4_1-1.png)
 
 Questions and Ideas?
 ========================================================

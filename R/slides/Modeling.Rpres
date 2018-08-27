@@ -1,0 +1,204 @@
+<style>
+.small-code pre code {
+  font-size: 1em;
+}
+</style>
+
+Modeling in R
+========================================================
+author: Ben Bellman
+date: August 28, 2018
+autosize: true
+
+The stats package
+========================================================
+
+- `stats` is one of the eight base packages
+- Huge list of models, statistics, tests, distributions, etc.
+    - [Full list for R version 3.5.1](https://www.rdocumentation.org/packages/stats/versions/3.5.1)
+- Lots of packages are devoted to implementing specific models
+- Range of available methods is a major strength of R
+- However, much less support compared to Stata, no warranty!
+
+Setting up the data
+========================================================
+class: small-code
+```{r}
+library(tidyverse)
+library(here)
+
+salaries <- read_csv(here("data","white-house-salaries.csv")) %>%
+  rename(name = employee_name) %>%
+  group_by(name) %>%
+  mutate(tenure = rank(year) - 1,   # make intercept interpretable to first year
+         gender = factor(gender),
+         term = factor(term),
+         year = year - 2001)   # make intercept interpretable to 2001
+```
+
+OLS Models
+========================================================
+class: small-code
+- Estaimte OLS regression models with `lm()`
+- You'll need to center/scale variables yourself
+```{r}
+ols_1 <- lm(salary ~ tenure + year + term + gender, data = salaries)
+
+summary(ols_1)
+```
+
+OLS Models
+========================================================
+class: small-code
+- `anova()` provides analysis of variance across model specifications
+```{r}
+ols_2 <- lm(salary ~ tenure + year + term, data = salaries)
+
+anova(ols_1, ols_2)
+```
+
+Diagnostic plots
+========================================================
+class: small-code
+- The `ggfortify()` package provide a simple function for diagnostic plots
+```{r plot1_0, eval=FALSE}
+library(ggfortify)
+autoplot(ols_1)
+```
+
+Diagnostic plots
+========================================================
+class: small-code
+```{r plot1_1, echo=FALSE}
+library(ggfortify)
+autoplot(ols_1)
+```
+
+The broom package
+========================================================
+
+- Most model functions output lists with lots of different data types and results
+    - Hard to work with these custom classes
+- `broom` package converts model results into a tidy data frame
+    - Useful for analysis and visualizing
+- Two main functions: `tidy()` and `augment()`
+    - ```tidy()``` describes the model and coefficients
+    - ```augment()``` collects observation-level attributes
+
+
+The broom package
+========================================================
+class: small-code
+- Let's look at the `lm()` output
+```{r}
+str(ols_1)
+```
+
+The broom package
+========================================================
+class: small-code
+- Make coefficients a tidy table!
+```{r}
+library(broom)
+tidy(ols_1)
+```
+
+The broom package
+========================================================
+class: small-code
+- Look at predictions and residuals
+```{r}
+augment(ols_1)
+```
+
+GLM Models
+========================================================
+
+- `glm()` estimates all functional forms of GLM framework
+
+- Must specify the link function using the `family =` argument
+- Rest of the argumetns are also available with `lm()`
+- Limited number of link functions available (full list next slide)
+
+```{r glm, eval=F}
+glm(formula = , family = , data = , subset = , weights = , na.action = , ...)
+```
+
+
+GLM Models
+========================================================
+
+Family | Default Link Function
+------ | --------------------
+binomial | (link = "logit")
+gaussian | (link = "identity")
+Gamma | (link = "inverse")
+inverse.gaussian | (link = "1/mu^2 ")
+poisson | (link = "log")
+quasi | (link = "identity", variance = "constant")
+quasibinomial | (link = "logit")
+quasipoisson | (link = "log")
+
+Logistic Regression
+========================================================
+class: small-code
+```{r}
+salaries <- mutate(salaries, woman = if_else(gender == "female", 1, 0))
+
+logit_1 <- glm(woman ~ president + year + tenure,
+               family = binomial(),
+               data = salaries)
+
+tidy(logit_1)
+```
+
+Predicted probabilities
+========================================================
+class: small-code
+- Need to predict probabilities for best interpretation
+```{r}
+new_data <- tibble(president = c("bush", "obama", "trump"),
+                  year = rep(mean(salaries$year), 3),
+                  tenure = rep(mean(salaries$tenure), 3))
+
+new_data
+```
+
+Predicted probabilities
+========================================================
+class: small-code
+```{r}
+pred <- predict(logit_1, new_data, type = "response", se.fit = T)
+
+new_data$predicted <- pred$fit
+new_data$lower <- pred$fit - (1.96 * pred$se.fit)
+new_data$upper <- pred$fit + (1.96 * pred$se.fit)
+
+new_data
+```
+
+Predicted probabilities
+========================================================
+class: small-code
+```{r}
+ggplot(new_data) +
+  geom_col(aes(x = president, y = predicted, fill = "orange")) +
+  geom_errorbar(aes(x = president, ymin = lower, ymax = upper), width = 0.5)
+```
+
+Other modeling packages
+========================================================
+
+- Panel and multilevel: `plm`, `lme4`
+
+- Spatial regression: `spdep`
+- Model training: `caret`
+- Ordered logit and others: `MASS`
+- Lots of Bayesian tools, e.g. `tidybayes`
+- So... many... models...
+
+Questions or thoughts?
+========================================================
+
+
+

@@ -1,0 +1,216 @@
+---
+title: "Spatial Data in R with `sf` and `tigris`"
+author: "Ben Bellman"
+date: "8/29/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+I first learned R in a spatial statistics class, so this topic is near and dear to my heart. Spatial data in R use to be based in the `sp` package, along with a whole host of other packages you'd need to load to do different things. `sp` has all the functionality you'd need, but the way its data structures were originally written has major problems. It's totally out of date in the dawning tidy era, and it was very different from the way any other software handles spatial data. The `sf` package, which stands for "simple features" has been under development for over a year, and while efforts continue, it is the new state-of-the-art in spatial data for R. This is actually the first time I've tried to use `sf` so this has been very helpful for me!
+
+## Reading spatial data
+
+One of the things I like most about `sf` is how much simpler it is to load spatial data. This is done with a single function: `st_read()`. This function automatically detects the format of data you're reading in based on a file extention or database connection, and outputs it as an `sf` class of data frame regardless of geometry type (point, line, polygon, etc.).
+
+There's plenty of online resources to help you use `st_read()`, so I wanted to showcase a couple other methods of obtaining spatial data for R. In the first section, I'll use existing coordinate columns to turn a regular dataset into a spatial points file. Then, I'll use two packages that access the U.S. Census Bureau APIs to import their polygon files and demographic data. Loading census data through the API helps make your code more reproducible, and once you have it down, it's easier than downloading a bunch of files over and over. If you made a mistake, all it takes is to edit your code!
+
+## Adding geometry from coordinates
+
+We're using the 2014 NYPD Stop, Question, and Frisk data for this section, which is included in the project data folder. It came as an excel spreadsheet, so we'll need the `readxl` package.
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(here)
+nyc_sqf <- read_xlsx(here("data","2014_sqf_web.xlsx"))
+nyc_sqf
+```
+
+We want to use the coordinate columns that tell us where in NYC these stops happened.
+
+```{r}
+select(nyc_sqf, xcoord, ycoord)
+```
+
+What kind of coordinates are these??? If you were to check the codebook in the data, you'd discover that these coordinates are given in a New York State Plane projection (NAD83 Long Island) that has a unit of feet. That makes sense given fine level of detail being depicted, but it will make mapping difficult, as generally spatial data refers to latitutde and longitude coordinates. We'll have to transform these coordinates as we create our spatial data.
+
+If you're not familiar with coordinate reference systems (CRS) and projections, just write this stuff off as GIS mumbo-jumbo for now. But fair warning: this stuff can and WILL cause you some major headaches when overlaying spatial data someday. Pay special attention to the `sf` metadata so you'll know where to look for these problems later on.
+
+While there are always many ways to complete tasks like this, I'll first attach the coordinates to make a spatial data frame, and then I'll transform the coordinates to lat/lon format. The `st_as_sf()` function is used for this kind of object conversion, and we use the `coords=` argument when turning columns into points, specifying the x column first (longitude, then latitude.
+
+```{r}
+library(sf)
+
+# function doesn't accept missing values for coordinates
+nyc_sqf <- nyc_sqf %>% 
+  filter(is.na(xcoord) == F & is.na(ycoord) == F) %>% 
+  st_as_sf(coords = c("xcoord", "ycoord"))
+class(nyc_sqf)
+nyc_sqf
+```
+
+The `sf` class has been added to the file, but it is still a `tbl` and a `data.frame`, which was definitely not the case with the old methods. This means that all of the `dplyr` functions will work on `sf` objects without any problems. Also be sure to notice the new metadata that appears at the top of the console information, which gives us the geometry type, the bounding box (maximum geographic extent of XY coordinates), and two empty fields called `espg (SRID)` and `proj4string`.
+
+*GIS MUMBO-JUMBO ALERT:* An SRID is an ID number for a specific spatial reference system, while the `proj4string` is a text string that specifies how the system works in reference to latitude and longitude. When overlaying different spatial data files, it is very important that the files' coordinates and metadata be in the same CRS. Otherwise, the computer will not overlay the data properly.
+
+First, we need to set the data's CRS so that the computer knows how to work with the values. We can do this with `st_set_crs()`. You'll need to look up exactly which ESPG code or proj4string you'll need online based on the CRS at a website like <http://spatialreference.org/>.
+
+```{r}
+nyc_sqf <- st_set_crs(nyc_sqf, 3628)
+
+# Let's take a closer look at the geographic info
+select(nyc_sqf, age, geometry)
+```
+
+There are a couple things to notice here. The first is that the geographic information is being stored in a single column of the data frame. This is consistent with the majority of spatial data formats, and makes our lives so much easier compared to the old packages. All hail `sp`! 
+
+Second, notice that the coordinates haven't actually changed. All we did was inform the computer of the CRS for this data. Without it, the computer would not know how to change the data into a new CRS.
+
+Now, let's use the `st_transform()` function to all the geographic info in one fell swoop. I want the data to be in lat/lon format using the same datum (NAD83).
+
+```{r}
+nyc_sqf <- st_transform(nyc_sqf, 4269)
+select(nyc_sqf, age, geometry)
+```
+
+Now, many things have changed with the data. The CRS metadata has changed, the coordinates themselves have changed, and even the spatial units of the geography column have changed from feet to decimal degrees! Dealing with CRS and projections is always frustration, but trust me, this is SO MUCH EASIER than it was with `sp`.
+
+## Downloading U.S. Census data
+
+The Census Bureau maintains APIs and repositories for their huge range of data products, and two fairly recent R packages take advantage of these interfaces: `tigris` and `tidycensus`. I've decided that `tidycensus` is a bit too much to learn as part of the workshop, but the syntax is very intuitive. The trouble is generating your API keys, as well as looking for Census codes for specific data you want to download. Both packages are developed by Kyle Walker, an assistant professor of geography at TCU. If you want to use R for spatial and census data, follow his twitter account. He posts helpful tricks and scripts to get started with his packges, and it's a great way to build your R skills in general.
+
+The `tigris` package is particularly easy to use, because there's no API key needed. The Census's TIGER geometry files are easily downloaded for free, and this package interfaces with their website. The function you use depends on the scale you want geometries for. The arguments narrow your search by state, county, etc. using FIPS codes.
+
+```{r}
+library(tigris)
+ri <- tracts(state = 44)
+class(ri)
+```
+
+Huh??? That's not a `sf` object!!! `tigris` was written according to `sp` standards, so it returns a very different kind of object (run `str(ri)` to see for yourself what a nightmare spatial data frames are). 
+
+However, this is fine for us. `sf` is collective effort by many original developers of `sp` and its other packages, and they have included plenty of tools to convert old spatial objects to simple features. You should remember this function from earlier!
+
+```{r}
+ri <- st_as_sf(ri)
+ri
+```
+
+## GIS operations with R
+
+The main attraction of GIS and spatial data is that spatial attributes allow you to use data together in powerful ways. You can also exploit the spatial information to create new spatial  definitions. One easy example is a dissolve. This generates the mathematical union of a set of geometires, and aggregates them into a single geometry. Let's disslove Providence County into a single object with one row.
+
+```{r}
+pc <- ri %>% 
+  filter(COUNTYFP == "007") %>% 
+  st_union()
+plot(pc)
+class(pc)
+```
+
+Notice that this result is not an `sf` table, but of class `sfc`, a simple geometry column. This is basically the geographic container that tabular data is attached to. 
+
+Another easy example of a GIS operation is a buffer, which simply extends the boundaries of a geometry in all directions by a set distance. Points become circles, lines become oblong polygons, and polygons get bigger! However, we'll need to convert the data into another CRS, because latitude and longitude are not measures of distance, and are thus inappropriate for buffering. 
+
+```{r}
+pc %>% 
+  st_transform(3438) %>%   # RI State Plane in feet
+  st_buffer(5280) %>%      # One-mile buffer specified in feet
+  plot()
+```
+
+One of the most important GIS operations out there is the spatial join. There are many tasks this handles: adding data attributes based on location, counting points inside a polygon, subsetting data based on location, etc.
+
+Let's use `tigris` to bring in some NYC spatial data to use with the SQF events. I'd like to subset just the events that happened in the Bronx, and then I'll eventually map numbers of events across census tracts. First, we download the tracts for Bronx county, and convert the file to simple features.
+
+```{r}
+bronx <- tracts(state = "36", "005") %>% 
+  st_as_sf()
+```
+
+Now, we can use `st_join()` to attach the attributes of intersecting features to our events.
+
+```{r}
+bronx_sqf <- st_join(nyc_sqf, bronx)
+names(bronx_sqf)
+```
+
+Notice all the new columns from the Bronx census tracts! These columns have empty values where our point data did not overlap the Bronx, so we can use that attribute to subest our data.
+
+```{r}
+table(bronx_sqf$COUNTYFP)
+
+bronx_sqf <- filter(bronx_sqf, COUNTYFP == "005")
+nrow(bronx_sqf)
+```
+
+Finally, let's count the number of 2014 SQF events in Bronx census tracts. This time, there will be a duplicate of each tract for every point within it, so we can reduce this file back to unique tracts by the number of times it appears. 
+
+```{r}
+bronx_events <- st_join(bronx, nyc_sqf) %>% 
+  group_by(GEOID) %>%                  # group by unique tract ID
+  mutate(events = n()) %>% 
+  ungroup() %>% 
+  select(GEOID, events, geometry) %>%  # drop unwanted columns             
+  unique()                             # keep only unique tracts
+
+bronx_events
+```
+
+## Mapping with R
+
+There is a large and growing collection of packages that enable different kinds of mapping. I'll introduce the `ggplot2` options available, as well as how to make a simple interactive web map using the `leaflet` package.
+
+It's easy to do a quick plot of `sfc` objects. By default, `plot` methods generally try to visualize all the data available, so if you just want to quickly see the geometry of an object, you can just feed it as an `sfc`.
+
+```{r}
+st_geometry(bronx_events) %>% plot()
+```
+
+`ggplot2` has built-in functions to handle plotting `sf` objects. This stuff is in-progress and has some bugs (you ahve to use `data =` on the `sf` object), so I recommend looking into a package called `tmap`. I've never used it as I make my "best" maps with ArcGIS, but it's effective for lots of data and visual styles and is very popular.
+
+```{r}
+ggplot() +
+  geom_sf(data = bronx_events, aes(fill = events))
+```
+
+You can add more data objects by adding another `geom_sf()` function.
+
+```{r}
+samp <- sample_n(bronx_sqf, 50)
+
+ggplot() +
+  geom_sf(data = bronx_events, aes(fill = events), size = 0.5) +
+  geom_sf(data = samp, col = "red", shape = 3)
+```
+
+One trick I really like comes from the `ggmap` package. This package will generate a web map tile from a range of sources, including Google. I prefer a clean, simple open source background.
+
+```{r}
+library(ggmap)
+m <- get_map("bronx", maptype = "toner-lite", zoom = 12)
+
+ggmap(m) +
+  geom_sf(data = bronx_events, aes(fill = events), 
+          size = 0, alpha = 0.7,
+          inherit.aes = FALSE)   # needs this because bugs
+```
+
+Finally, you can use the `leaflet` package to create an interactive web maps. To do this, the data's CRS must be in lat/lon coordinates using WGS84, the datum for web cartography. Leaflet has a website with lots of tutorials on how to use their (very complicated) package.
+
+```{r}
+library(leaflet)
+
+pal <- colorNumeric(palette = "Blues", domain = bronx_events$events)
+
+st_transform(bronx_events, 4326) %>%    # transform to correct CRS
+leaflet() %>%
+  addTiles() %>%
+  addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 0.8,
+              fillColor = ~pal(events), label = ~paste0("Tract ", GEOID, " - ", events, " stops"))
+```
+
+This is only a small taste of the spatial data capabilities of R. Keep learning and seraching on your own, best of luck!

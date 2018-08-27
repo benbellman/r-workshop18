@@ -20,6 +20,8 @@ dr_here()
 # so you can access data/code with same code across computers
 here("data","white-house-salaries.csv")
 
+# use setwd() as a quick fix to change directories
+
 # Now, let the coding begin!
 ###########################
 
